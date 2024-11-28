@@ -1,0 +1,119 @@
+---
+title: "Regression Prediction Problem Memo"
+subtitle: |
+  | Final Project 
+  | Data Science 3 with R (STAT 301-3)
+author:
+  - name: Allison Kane
+date: today
+
+format:
+  html:
+    toc: true
+    toc-location: left
+    embed-resources: true
+    
+execute:
+  echo: false
+  warning: false
+
+from: markdown+emoji 
+reference-location: margin
+citation-location: margin
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link
+
+[Regression Prediction Problem Link](https://github.com/stat301-3-2024-spring/regression-pred-prob-akane2460)
+
+:::
+
+::: {.callout-tip icon=false}
+
+## Prediction Problem
+
+Predicting the nightly price of an AirBnB listing in USD.
+
+:::
+
+## Introduction
+When traveling, the website AirBnB is a popular choice of housing rental. Some AirBnBs' amenities are very different from hotels and their prices might deviate as well. These amenities and features of an AirBnB listing often impact its nightly price. In this memo, the price of AirBnBs are predicted by two different models, one with an mean average error of approximately 43.34 USD and 43.46 USD. These models will be explored in their performance on a prescribed testing set and their potential performance on more general AirBnB data. 
+
+## Data Inspection
+### Data Cleaning
+Upon initial inspection of the data, there was missingness noted and rectified during the recipe step. The target variable price was not evenly distributed and needed to be transformed with a log 10 scale. A substantial amount of factor variables exhibited many different levels, requiring handling in the recipe formation step. Additionally, there was timescale data included in the dataset, which was outside the scope of this analysis.
+
+### Important Variables
+Using a lasso approach, variable selection was performed, dictating which variables contributed most to our target variable. These results were considered as recipes were formed and feature engineering was performed.
+
+## Recipe Formation
+### Null Recipe
+  The explorations conducted before recipe formation shaped the null, simple and advanced models. In the null recipe, timescale data and the id variable was removed. To account for missingness, imputation steps were done. The number of beds and the number of accommodates ie. people (cannot have more accommodates than bed space) seem inherently related. Therefore, the missing values of the bed numbers were imputed using a k-nearest neighbors imputation step from the number of accomodates. All other missingness was handled with median and mode imputation steps. 
+  Further, all nominal variables were dummied to ensure compatibility with model types. To ensure compatibility with potential novel levels in the testing set, a novel levels step was performed. A yeo-johnson transformation was applied to align predictors with the transformed outcome variable. All levels with a frequency less than .05 were consolidated into an "other" category, making handling rare levels much easier. Predictors with near-zero variance were removed and all remaining predictors were normalized. 
+  
+### Simple Recipe
+  In the simple recipe, some interactions were incorporated marginally. An interaction was established between beds and accommodates (due to their relationship described above). Additionally, an interaction was established between the overall review score and its individual review components (like the reviews of the location, communication, etc.). Interactions between variables indicated as most impactful in our variable selection were considered more carefully. in this step
+
+### Advanced Recipe
+  In the advanced recipe, alternative methods for imputing the number of bathrooms were utilized, with a similar approach to beds. This could be interesting to explore, as some AirBnBs retain a 1:1 ratio of beds to bathrooms, but not all. Additional interactions were generated between those available 90 days before booking and those available 365 days before booking were considered. There might be some relationship between AirBnBs available 365 days in the future and ones available only 90 days in the future due to seasonal or host preferences. Additional interactions were considered regarding the home's property type, the type of room, the number of bathrooms, the number of private rooms, the reviews of the location, the neighbourhood, the longitude coordinate and the latitude coordinate of the property. This allows the recipe to capture more complicated relationships between predictors.
+
+## Choice No. 1: Best Performing Model
+My best performing model^[attempt_5] is an ensemble model with boosted tree and K-nearest neighbors components. This model was trained on the null recipe, which was found to yield better model performance than its advanced counterpart. This model yielded a mean average error of approximately 43.34 USD, indicating that on average the predictions made by this model differed from the true nightly price by 43.34 USD. It is 
+
+![Final Model Choice 1: Ensemble Model Contributions](plots/attempt_5_weights_plot.png)
+
+#### Boosted Model Contributions and Optimal Parameters
+|member                  | mtry| min_n| learn_rate|      coef|
+|:-----------------------|----:|-----:|----------:|---------:|
+|boosted_tuned_null_1_01 |   13|     9|  0.0411636| 0.2064503|
+|boosted_tuned_null_1_02 |   12|     5|  0.0730666| 0.3181748|
+|boosted_tuned_null_1_03 |   12|     6|  0.3598471| 0.0402961|
+|boosted_tuned_null_1_04 |   15|     6|  0.9911791| 0.0277757|
+|boosted_tuned_null_1_09 |   12|     8|  0.0320098| 0.0475317|
+|boosted_tuned_null_1_11 |   13|     6|  0.1018992| 0.1406677|
+|boosted_tuned_null_1_12 |   14|     7|  0.2006415| 0.0968606|
+|boosted_tuned_null_1_13 |   10|     7|  0.0249730| 0.0674185|
+
+#### KNN Model Contributions and Optimal Parameters
+|member              | neighbors|      coef|
+|:-------------------|---------:|---------:|
+|knn_tuned_null_1_01 |         8| 0.0783308|
+
+In this model, the boosted tree model typically sees greater contributions, with the optimal K-nearest neighbor model contributing approximately .0783 of weight to the model (with all other K-nearest neighbors models contributing 0). This indicates that boosted tree is the biggest contributor to the ensemble model, with a smaller contribution from the k-nn. The optimal parameters indicate that the largest boosted model contributor performs best at an mtry setting of 13, with a learn rate of .04112 and a minimum observations of 9. The knn contributing model has an optimal number of 8 neighbors.
+
+
+## Choice No. 2
+The other chosen model^[attempt_6] is an ensemble model with boosted tree and K-nearest neighbors components. However, this model was trained on the advanced recipe, incorporating much more extensive feature engineering steps. For non-leaderboard predictions, this could be beneficial over a null model, accounting for potential interactions that influence the outcome variable, price. It still retains the effective combination of boosted tree and K-nearest neighbor components.
+This model yielded a mean average error of approximately 43.46 USD, indicating that on average the predictions made by this model differed from the true nightly price by 43.46 USD. 
+
+![Final Model Choice : Ensemble Model Contributions](plots/attempt_6_weights_plot.png)
+
+#### Boosted Model Contributions and Optimal Parameters
+|member                      | mtry| min_n| learn_rate|      coef|
+|:---------------------------|----:|-----:|----------:|---------:|
+|boosted_tuned_advanced_1_02 |   13|     5|  0.3041458| 0.0159942|
+|boosted_tuned_advanced_1_05 |   12|     5|  0.4480596| 0.0821323|
+|boosted_tuned_advanced_1_06 |   13|     8|  0.0944365| 0.2882644|
+|boosted_tuned_advanced_1_08 |   12|     6|  0.0315618| 0.1730345|
+|boosted_tuned_advanced_1_09 |   12|     6|  0.0491863| 0.1900116|
+|boosted_tuned_advanced_1_10 |   14|     7|  0.8676003| 0.0074531|
+|boosted_tuned_advanced_1_17 |   13|     9|  0.1359193| 0.1742079|
+
+#### KNN Model Contributions and Optimal Parameters
+|member                  | neighbors|      coef|
+|:-----------------------|---------:|---------:|
+|knn_tuned_advanced_1_01 |         8| 0.0921803|
+
+In this model, the boosted tree model also sees greater contributions than the K-nearest neighbor model. The optimal K-nearest neighbor model contributes approximately .0921 of weight to the model (with all other models contributing 0). This indicates that, again, boosted tree is the biggest contributor to the ensemble model, with a smaller contribution from the k-nn. The optimal parameters indicate that the largest boosted model contributor performs best at an mtry setting of 13, with a learn rate of .3041 and a minimum observations of 5. The knn contributing model has an optimal number of 8 neighbors.
+
+## Reaching Final Models
+In initial attempts, various model types were utilized, including linear regression, lasso, ridge, elastic net, neural networks, boosted trees, k-nearest neighbors and more. In particular, the ensemble model generated in a previous ensemble^[`attempt_1_not_selected`] approach indicates that contributions from k-nn and boosted tree models far outweighed every other model. 
+
+![Attempt 1 Ensemble Model Contributions](plots/ensemble_contrib_plot.png)
+Additionally, null recipe model results appeared to be better performing than more feature engineered recipes. Though in this instance selecting a null model is advantageous, on other sets of data it might be beneficial to capture more intricacies in more advanced recipe models. This bolsters the selection of both null and advanced recipe models for the final models.
+
+# Conclusion
+Overall, there are two effective models that accurately and clearly predict AirBnB prices. These models were obtained through the examination of the dataset, cleaning of the dataset, calculated recipe formation, and examination of effective ensemble models to pinpoint the best contributing model types. One model takes a more general approach, employing a null recipe, while the other more specific with greater feature engineering in the advanced recipe. 
+
